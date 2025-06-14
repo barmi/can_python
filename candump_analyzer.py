@@ -432,7 +432,9 @@ class BMWCANAnalyzer:
             print("4. 이상 패턴 탐지")
             print("5. 시각화 생성")
             print("6. 분석 보고서 출력")
-            print("7. 종료")
+            print("8. CAN ID 패턴 자동 발견")
+            print("9. DBC 파일 로드")
+            print("10. 종료")
 
             choice = input("\n선택하세요 (1-7): ").strip()
 
