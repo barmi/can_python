@@ -90,7 +90,128 @@ class BMWCANAnalyzer:
         except Exception as e:
             print(f"파일 로딩 중 오류 발생: {e}")
 
-    def _categorize_can_id(self, can_id):
+    def load_dbc_file(self, dbc_file_path):
+        """
+        DBC 파일을 로드하여 정확한 CAN ID 분류 적용
+
+        Args:
+            dbc_file_path (str): DBC 파일 경로
+        """
+        try:
+            print(f"DBC 파일 로딩 시도: {dbc_file_path}")
+            # DBC 파일 파싱 로직 (cantools 라이브러리 사용 권장)
+            # pip install cantools 필요
+            import cantools
+
+            db = cantools.database.load_file(dbc_file_path)
+
+            # DBC에서 메시지 정보 추출
+            dbc_categories = {}
+            for message in db.messages:
+                can_id = message.frame_id
+                message_name = message.name
+
+                # 메시지 이름 기반으로 카테고리 추정
+                category = self._categorize_by_message_name(message_name)
+
+                if category not in dbc_categories:
+                    dbc_categories[category] = []
+                dbc_categories[category].append(can_id)
+
+            # 기존 추정값을 DBC 정보로 교체
+            self.bmw_can_categories = dbc_categories
+            print(f"DBC 파일에서 {len(db.messages)}개의 메시지 정보를 로드했습니다.")
+
+        except ImportError:
+            print("cantools 라이브러리가 필요합니다: pip install cantools")
+        except Exception as e:
+            print(f"DBC 파일 로딩 실패: {e}")
+            print("추정값을 계속 사용합니다.")
+
+    def _categorize_by_message_name(self, message_name):
+        """메시지 이름 기반 카테고리 분류"""
+        name_lower = message_name.lower()
+
+        if any(keyword in name_lower for keyword in ['engine', 'motor', 'rpm', 'throttle']):
+            return 'Engine'
+        elif any(keyword in name_lower for keyword in ['gear', 'trans', 'shift']):
+            return 'Transmission'
+        elif any(keyword in name_lower for keyword in ['brake', 'abs', 'esp', 'airbag']):
+            return 'Safety_Systems'
+        elif any(keyword in name_lower for keyword in ['light', 'lamp', 'led']):
+            return 'Lighting'
+        elif any(keyword in name_lower for keyword in ['climate', 'hvac', 'temp']):
+            return 'Climate'
+        elif any(keyword in name_lower for keyword in ['radio', 'navi', 'media']):
+            return 'Infotainment'
+        elif any(keyword in name_lower for keyword in ['door', 'window', 'seat', 'mirror']):
+            return 'Comfort'
+        elif any(keyword in name_lower for keyword in ['body', 'bcm', 'power']):
+            return 'Body_Electronics'
+        else:
+            return 'Unknown'
+
+    def discover_can_patterns(self):
+        """
+        CAN ID 패턴을 자동으로 발견하여 분류 개선
+        실제 데이터 패턴을 기반으로 CAN ID를 그룹핑
+        """
+        if self.df is None:
+            return
+
+        print("\n=== CAN ID 패턴 자동 발견 ===")
+
+        # 메시지 빈도 기반 분류
+        id_stats = self.df.groupby('can_id').agg({
+            'timestamp': ['count', 'nunique'],
+            'data_length': ['mean', 'std'],
+            'time_diff': 'mean'
+        }).round(4)
+
+        id_stats.columns = ['msg_count', 'unique_times', 'avg_data_len', 'std_data_len', 'avg_interval']
+
+        # 패턴 기반 분류
+        discovered_patterns = {
+            'High_Frequency': [],  # > 10Hz
+            'Medium_Frequency': [],  # 1-10Hz
+            'Low_Frequency': [],  # < 1Hz
+            'Fixed_Length_8': [],  # 항상 8바이트
+            'Variable_Length': [],  # 가변 길이
+            'Periodic': [],  # 주기적
+            'Event_Based': []  # 이벤트 기반
+        }
+
+        for can_id, stats in id_stats.iterrows():
+            frequency = stats['msg_count'] / (self.df['timestamp'].max() - self.df['timestamp'].min())
+
+            # 빈도 기반 분류
+            if frequency > 10:
+                discovered_patterns['High_Frequency'].append(can_id)
+            elif frequency > 1:
+                discovered_patterns['Medium_Frequency'].append(can_id)
+            else:
+                discovered_patterns['Low_Frequency'].append(can_id)
+
+            # 데이터 길이 기반 분류
+            if abs(stats['avg_data_len'] - 8) < 0.1 and stats['std_data_len'] < 0.1:
+                discovered_patterns['Fixed_Length_8'].append(can_id)
+            elif stats['std_data_len'] > 1:
+                discovered_patterns['Variable_Length'].append(can_id)
+
+            # 주기성 기반 분류
+            if stats['avg_interval'] > 0 and not np.isnan(stats['avg_interval']):
+                if stats['avg_interval'] < 0.2:  # 200ms 이하 주기
+                    discovered_patterns['Periodic'].append(can_id)
+                else:
+                    discovered_patterns['Event_Based'].append(can_id)
+
+        print("발견된 패턴:")
+        for pattern, ids in discovered_patterns.items():
+            if ids:
+                print(f"{pattern}: {len(ids)}개 ID")
+                print(f"  예시: {[f'0x{id:03X}' for id in ids[:5]]}")
+
+        return discovered_patterns
         """CAN ID를 카테고리별로 분류"""
         for category, ids in self.bmw_can_categories.items():
             if can_id in ids:
