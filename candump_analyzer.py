@@ -212,6 +212,8 @@ class BMWCANAnalyzer:
                 print(f"  예시: {[f'0x{id:03X}' for id in ids[:5]]}")
 
         return discovered_patterns
+
+    def _categorize_can_id(self, can_id):
         """CAN ID를 카테고리별로 분류"""
         for category, ids in self.bmw_can_categories.items():
             if can_id in ids:
