@@ -21,16 +21,18 @@ class BMWCANAnalyzer:
         self.parsed_data = []
         self.df = None
 
-        # BMW CAN ID 분류 (일반적인 BMW CAN ID 패턴)
+        # BMW CAN ID 분류 (추정값 - 실제 차량별로 다를 수 있음)
+        # 주의: 이 값들은 일반적인 패턴 기반 추정값이며, 실제 BMW 차량의
+        # 정확한 CAN ID는 해당 모델의 DBC 파일이나 공식 문서에서 확인해야 합니다.
         self.bmw_can_categories = {
-            'Engine': [0x0A5, 0x0CA, 0x0C4, 0x0C0, 0x03C, 0x12F],
-            'Transmission': [0x1A1, 0x1C5, 0x1E4],
-            'Body_Electronics': [0x175, 0x173, 0x199, 0x19A, 0x197, 0x0D9],
-            'Comfort': [0x33E, 0x3B8, 0x3B9, 0x3FD, 0x3F9],
-            'Safety_Systems': [0x2EB, 0x265, 0x301, 0x314, 0x316],
-            'Infotainment': [0x1F8, 0x1BA, 0x360, 0x0A2],
-            'Climate': [0x163, 0x368, 0x2F4],
-            'Lighting': [0x104, 0x297, 0x304],
+            'Engine_Estimated': [0x0A5, 0x0CA, 0x0C4, 0x0C0, 0x03C, 0x12F],
+            'Transmission_Estimated': [0x1A1, 0x1C5, 0x1E4],
+            'Body_Electronics_Estimated': [0x175, 0x173, 0x199, 0x19A, 0x197, 0x0D9],
+            'Comfort_Estimated': [0x33E, 0x3B8, 0x3B9, 0x3FD, 0x3F9],
+            'Safety_Systems_Estimated': [0x2EB, 0x265, 0x301, 0x314, 0x316],
+            'Infotainment_Estimated': [0x1F8, 0x1BA, 0x360, 0x0A2],
+            'Climate_Estimated': [0x163, 0x368, 0x2F4],
+            'Lighting_Estimated': [0x104, 0x297, 0x304],
             'Unknown': []
         }
 
