@@ -436,7 +436,7 @@ class BMWCANAnalyzer:
             print("9. DBC 파일 로드")
             print("10. 종료")
 
-            choice = input("\n선택하세요 (1-7): ").strip()
+            choice = input("\n선택하세요 (1-10): ").strip()
 
             if choice == '1':
                 self.get_basic_statistics()
