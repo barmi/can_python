@@ -453,12 +453,19 @@ class BMWCANAnalyzer:
                 self.detect_anomalies()
             elif choice == '5':
                 self.generate_visualizations()
-            elif choice == '6':
+            elif choice == '7':
                 filename = input("출력 파일명 (기본: can_analysis_report.txt): ").strip()
                 if not filename:
                     filename = 'can_analysis_report.txt'
                 self.export_analysis_report(filename)
-            elif choice == '7':
+            elif choice == '8':
+                self.discover_can_patterns()
+            elif choice == '9':
+                dbc_file = input("DBC 파일 경로: ").strip()
+                self.load_dbc_file(dbc_file)
+                print("분석을 다시 실행합니다...")
+                self.df['category'] = self.df['can_id'].apply(self._categorize_can_id)
+            elif choice == '10':
                 print("프로그램을 종료합니다.")
                 break
             else:
